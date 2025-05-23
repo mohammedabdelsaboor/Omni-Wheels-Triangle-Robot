@@ -1,0 +1,60 @@
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+import serial
+import math
+
+class OmniSerialNode(Node):
+    def __init__(self):
+        super().__init__('omni_serial_node')
+        
+        # Serial connection to Arduino
+        self.ser = serial.Serial('/dev/ttyUSB0', 115200)
+        self.get_logger().info("Connected to Arduino on /dev/ttyUSB0")
+        
+        # Subscribe to /cmd_vel
+        self.subscription = self.create_subscription(
+            Twist,
+            'cmd_vel',
+            self.cmd_vel_callback,
+            10)
+        
+        # Distance from robot center to wheel (m)
+        self.R = 0.1
+
+    def cmd_vel_callback(self, msg):
+        vx = msg.linear.x
+        vy = msg.linear.y
+        omega = msg.angular.z
+
+        # Omniwheel kinematics for 3 wheels in triangle
+        w1 = (-0.5 * vx + (math.sqrt(3)/2) * vy + self.R * omega)
+        w2 = (-0.5 * vx - (math.sqrt(3)/2) * vy + self.R * omega)
+        w3 = (vx + self.R * omega)
+
+        # Scale to range [-255, 255]
+        wheel_speeds = [w1, w2, w3]
+        scaled = [int(max(min(w * 100, 255), -255)) for w in wheel_speeds]
+
+        # Send to Arduino
+        serial_msg = f"{scaled[0]},{scaled[1]},{scaled[2]}\n"
+        self.get_logger().info(f"Sending: {serial_msg.strip()}")
+        self.ser.write(serial_msg.encode())
+
+    def destroy_node(self):
+        self.ser.close()
+        super().destroy_node()
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = OmniSerialNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
