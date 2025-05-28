@@ -5,6 +5,8 @@ A ROS 2 and Arduino-based control system for a 3-wheel omni robot. A ROS node li
 A ROS 2 and Arduino-based system for controlling a 3-wheel omni-directional robot.
 
 ##  Overview
+![WhatsApp Image 2025-05-28 at 23 31 39_2edb127b](https://github.com/user-attachments/assets/c3f311a4-2510-4897-8a20-7e4eaf97a594)
+
 
 - ROS 2 node subscribes to `/cmd_vel`
 - Calculates individual wheel speeds using omni kinematics
